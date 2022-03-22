@@ -1,0 +1,61 @@
+spring:
+  profiles:
+    active:
+    - test1
+  #-- 해당 이름과 프로파일의 경우 해당 프로젝트의 이름과 active Type을 선언하는 것이 아니라, Config Server 의 이름과 profile을 찾아서 가져오는 것임
+  application:
+    name: config
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  config:
+    import: "optional:configserver:http://localhost:9001/"
+  rabbitmq:
+    host: localhost
+    port: 5682
+    username: leona
+    password: leona
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user/**
+            # - Method=GET
+            # - Cookie=valid, kakao
+            # - After=2022-03-22T13:45:00.000-07:00
+          filters:
+            # - AddRequestHeader=token, 123456
+            # - AddResponseHeader=authenticated, yes
+            - RewritePath=/user/?(?<segment>.*), /$\{segment}
+            - CustomAuthFilter
+        - id: order-service
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/order/**
+            # - Method=POST
+            # - Cookie=valid, naver
+            # - Before=2022-03-22T13:45:00.000-07:00
+          filters:
+            # - AddRequestHeader=token, 654321
+            # - AddResponseHeader=authenticated, yes
+            - RewritePath=/order/?(?<segment>.*), /$\{segment}
+  
+eureka:
+  instance:
+    instance-id: gateway-microservice-instance
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://localhost:9900/eureka
+
+server:
+  port: 9002
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: busrefresh
